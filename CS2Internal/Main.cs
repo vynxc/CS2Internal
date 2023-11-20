@@ -15,9 +15,9 @@ public abstract unsafe class Main
     private static readonly IntPtr ModuleBaseEngine = WinApi.GetModuleHandle("engine2.dll");
     private static Entity* _localPlayerPawn;
     private static readonly bool IsRunning = true;
-    private static List<Entity> _entityList = new();
+    private static readonly List<Entity> EntityList = new();
 
-    private static Dictionary<string, int> _bones = new()
+    private static readonly Dictionary<string, int> Bones = new()
     {
         { "head", 6 },
         { "cou", 5 },
@@ -34,7 +34,7 @@ public abstract unsafe class Main
         { "feetL", 27 }
     };
 
-    private static List<Tuple<string, string>> _connections = new()
+    private static readonly List<Tuple<string, string>> Connections = new()
     {
         Tuple.Create("cou", "head"),
         Tuple.Create("cou", "shoulderR"),
@@ -79,7 +79,7 @@ public abstract unsafe class Main
         var viewMatrixPtr = (float*)(ModuleBaseClient + client_dll.dwViewMatrix);
         if (viewMatrixPtr == null) return;
         var matrix = new ReadOnlySpan<float>(viewMatrixPtr, 16);
-        var tempEntityList = new List<Entity>(_entityList); //copy to new list to avoid concurrency issues
+        var tempEntityList = new List<Entity>(EntityList); //copy to new list to avoid concurrency issues
         foreach (var entity in tempEntityList)
         {
             var engineWidth = 1920;
@@ -109,10 +109,10 @@ public abstract unsafe class Main
                 .AddRect(topLeft, bottomRight, ImGui.ColorConvertFloat4ToU32(new Vector4(0, 0, 1, 1)), 5,
                     ImDrawCornerFlags.All, 1);
 
-            foreach (var connection in _connections)
+            foreach (var connection in Connections)
             {
-                var bone1 = _bones[connection.Item1];
-                var bone2 = _bones[connection.Item2];
+                var bone1 = Bones[connection.Item1];
+                var bone2 = Bones[connection.Item2];
 
                 var bone1Pos = *(Vector3*)(entity.SceneNode->ModalState.BoneArray + bone1 * 32);
                 var bone2Pos = *(Vector3*)(entity.SceneNode->ModalState.BoneArray + bone2 * 32);
@@ -143,7 +143,7 @@ public abstract unsafe class Main
         if (localPlayer != IntPtr.Zero)
             _localPlayerPawn = *(Entity**)localPlayer;
 
-        _entityList.Clear();
+        EntityList.Clear();
 
         var tempEntityAddress = *(IntPtr*)(ModuleBaseClient + client_dll.dwEntityList);
         if (tempEntityAddress == IntPtr.Zero) return;
@@ -175,7 +175,7 @@ public abstract unsafe class Main
                 continue;
 
             if (playerEntity.Health is > 0 and <= 100)
-                _entityList.Add(playerEntity);
+                EntityList.Add(playerEntity);
         }
     }
 
