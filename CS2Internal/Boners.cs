@@ -1,8 +1,11 @@
-﻿namespace CS2Internal;
+﻿using System.Collections.Frozen;
+using System.Collections.Immutable;
+
+namespace CS2Internal;
 
 public static class Boners
 {
-    public static readonly Dictionary<string, int> BoneOffsetMap = new()
+    public static readonly FrozenDictionary<string, int> BoneOffsetMap = new Dictionary<string, int>()
     {
         { "head", 6 },
         { "cou", 5 },
@@ -17,9 +20,9 @@ public static class Boners
         { "kneesL", 26 },
         { "feetR", 24 },
         { "feetL", 27 }
-    };
+    }.ToFrozenDictionary();
 
-    public static readonly (string Bone1, string Bone2)[] BoneConnections = {
+    public static readonly ImmutableArray<(string Bone1, string Bone2)> BoneConnections = new[] {
         ("cou", "head"),
         ("cou", "shoulderR"),
         ("cou", "shoulderL"),
@@ -32,5 +35,5 @@ public static class Boners
         ("kneesL", "cock"),
         ("kneesL", "feetL"),
         ("kneesR", "feetR")
-    };
+    }.ToImmutableArray();
 }
