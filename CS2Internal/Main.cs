@@ -32,9 +32,7 @@ public abstract unsafe class Main
 
         return true;
     }
-
-    private static readonly float[] Matrix = new float[16];
-
+    
     private static void UserInterface()
     {
         ImGui.Begin("Overlay",
@@ -44,6 +42,8 @@ public abstract unsafe class Main
         ImGui.SetWindowPos(new Vector2(0, 0), ImGuiCond.Always);
         ImGui.SetWindowSize(new Vector2(io.DisplaySize.X, io.DisplaySize.Y), ImGuiCond.Always);
 
+        var matrix = new ReadOnlySpan<float>((float*)(ModuleBaseClient + client_dll.dwViewMatrix), 16);
+        
         foreach (var entity in _entityList)
         {
             var engineWidth = 1920;
@@ -51,8 +51,8 @@ public abstract unsafe class Main
 
             var origin = entity.SceneNode->VecOriginAbsolute;
             var headPos = *(Vector3*)(entity.SceneNode->ModalState.BoneArray + 6 * 32);
-            if (!WorldToScreen(headPos, Matrix, engineWidth, engineHeight, out var screenHead) ||
-                !WorldToScreen(origin, Matrix, engineWidth, engineHeight, out var screenBase))
+            if (!WorldToScreen(headPos, matrix, engineWidth, engineHeight, out var screenHead) ||
+                !WorldToScreen(origin, matrix, engineWidth, engineHeight, out var screenBase))
                 continue;
 
 
@@ -119,7 +119,6 @@ public abstract unsafe class Main
 
     private static void MainThread()
     {
-        var matrixSpan = new ReadOnlySpan<float>((float*)(ModuleBaseClient + client_dll.dwViewMatrix), 16);
         while (IsRunning)
         {
             try
@@ -133,7 +132,6 @@ public abstract unsafe class Main
                     continue;
                 var viewMatrixPtr = (float*)(ModuleBaseClient + client_dll.dwViewMatrix);
                 if (viewMatrixPtr == null) continue;
-                matrixSpan.CopyTo(Matrix);
                 _localPlayerPawn = *(Entity**)localPlayer;
                 UpdateEntityList(localPlayer, _entityList);
             }
