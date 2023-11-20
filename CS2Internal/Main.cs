@@ -77,11 +77,12 @@ public abstract unsafe class Main
         ImGui.End();
     }
 
-    private static List<Entity> GetUpdatedEntity(IntPtr localPlayerPtr)
+    private static void UpdateEntityList(IntPtr localPlayerPtr, ICollection<Entity> entityList)
     {
-        var entityList = new List<Entity>();
+        entityList.Clear();
+        
         var tempEntityAddress = *(IntPtr*)(ModuleBaseClient + client_dll.dwEntityList);
-        if (tempEntityAddress == IntPtr.Zero) return entityList;
+        if (tempEntityAddress == IntPtr.Zero) return;
         for (var i = 0; i < 32; i++)
         {
             var listEntry = *(IntPtr*)(tempEntityAddress + (((8 * (i & 0x7FFF)) >> 9) + 16));
@@ -113,8 +114,6 @@ public abstract unsafe class Main
             if (playerEntity.Health is > 0 and <= 100)
                 entityList.Add(playerEntity);
         }
-
-        return entityList;
     }
 
 
@@ -136,7 +135,7 @@ public abstract unsafe class Main
                 if (viewMatrixPtr == null) continue;
                 matrixSpan.CopyTo(Matrix);
                 _localPlayerPawn = *(Entity**)localPlayer;
-                _entityList = GetUpdatedEntity(localPlayer);
+                UpdateEntityList(localPlayer, _entityList);
             }
             catch (Exception e)
             {
