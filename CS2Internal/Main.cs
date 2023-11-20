@@ -32,9 +32,7 @@ public abstract unsafe class Main
 
         return true;
     }
-
-    private static readonly float[] Matrix = new float[16];
-
+    
     private static void UserInterface()
     {
         ImGui.Begin("Overlay",
@@ -44,6 +42,8 @@ public abstract unsafe class Main
         ImGui.SetWindowPos(new Vector2(0, 0), ImGuiCond.Always);
         ImGui.SetWindowSize(new Vector2(io.DisplaySize.X, io.DisplaySize.Y), ImGuiCond.Always);
 
+        var matrix = new ReadOnlySpan<float>((float*)(ModuleBaseClient + client_dll.dwViewMatrix), 16);
+        
         foreach (var entity in _entityList)
         {
             var engineWidth = 1920;
@@ -51,8 +51,8 @@ public abstract unsafe class Main
 
             var origin = entity.SceneNode->VecOriginAbsolute;
             var headPos = *(Vector3*)(entity.SceneNode->ModalState.BoneArray + 6 * 32);
-            if (!WorldToScreen(headPos, Matrix, engineWidth, engineHeight, out var screenHead) ||
-                !WorldToScreen(origin, Matrix, engineWidth, engineHeight, out var screenBase))
+            if (!WorldToScreen(headPos, matrix, engineWidth, engineHeight, out var screenHead) ||
+                !WorldToScreen(origin, matrix, engineWidth, engineHeight, out var screenBase))
                 continue;
 
 
@@ -77,11 +77,12 @@ public abstract unsafe class Main
         ImGui.End();
     }
 
-    private static List<Entity> GetUpdatedEntity(IntPtr localPlayerPtr)
+    private static void UpdateEntityList(IntPtr localPlayerPtr, ICollection<Entity> entityList)
     {
-        var entityList = new List<Entity>();
+        entityList.Clear();
+        
         var tempEntityAddress = *(IntPtr*)(ModuleBaseClient + client_dll.dwEntityList);
-        if (tempEntityAddress == IntPtr.Zero) return entityList;
+        if (tempEntityAddress == IntPtr.Zero) return;
         for (var i = 0; i < 32; i++)
         {
             var listEntry = *(IntPtr*)(tempEntityAddress + (((8 * (i & 0x7FFF)) >> 9) + 16));
@@ -113,14 +114,11 @@ public abstract unsafe class Main
             if (playerEntity.Health is > 0 and <= 100)
                 entityList.Add(playerEntity);
         }
-
-        return entityList;
     }
 
 
     private static void MainThread()
     {
-        var matrixSpan = new ReadOnlySpan<float>((float*)(ModuleBaseClient + client_dll.dwViewMatrix), 16);
         while (IsRunning)
         {
             try
@@ -134,9 +132,8 @@ public abstract unsafe class Main
                     continue;
                 var viewMatrixPtr = (float*)(ModuleBaseClient + client_dll.dwViewMatrix);
                 if (viewMatrixPtr == null) continue;
-                matrixSpan.CopyTo(Matrix);
                 _localPlayerPawn = *(Entity**)localPlayer;
-                _entityList = GetUpdatedEntity(localPlayer);
+                UpdateEntityList(localPlayer, _entityList);
             }
             catch (Exception e)
             {
