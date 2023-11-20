@@ -26,7 +26,8 @@ public abstract unsafe class Main
 
                 WinApi.AllocConsole();
                 Renderer.Init(UserInterface);
-                Task.Run(MainThread);
+                new TaskFactory(TaskCreationOptions.LongRunning, 0)
+                    .StartNew(MainThread);
                 break;
         }
 
