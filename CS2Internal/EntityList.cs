@@ -8,7 +8,7 @@ public class EntityList
 {
     private readonly ConcurrentBag<Entity> _entities = new();
 
-    public unsafe void UpdateEntityList()
+    public unsafe void UpdateEntityList(ref Entity* localPlayerPawn)
     {
         if (Main.ModuleBaseClient == IntPtr.Zero)
             return;
@@ -16,8 +16,7 @@ public class EntityList
         var localPlayer = *(IntPtr*)(Main.ModuleBaseClient + client_dll.dwLocalPlayerPawn);
 
         if (localPlayer != IntPtr.Zero)
-            // TODO: Pass by ref
-            Main._localPlayerPawn = *(Entity**)localPlayer;
+            localPlayerPawn = *(Entity**)localPlayer;
 
         _entities.Clear();
 

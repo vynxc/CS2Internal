@@ -13,7 +13,7 @@ public abstract unsafe class Main
 {
     public static readonly IntPtr ModuleBaseClient = WinApi.GetModuleHandle("client.dll");
     private static readonly IntPtr ModuleBaseEngine = WinApi.GetModuleHandle("engine2.dll");
-    public static Entity* _localPlayerPawn;
+    private static Entity* _localPlayerPawn;
     private static readonly bool IsRunning = true;
 
     [UnmanagedCallersOnly(EntryPoint = "DllMain", CallConvs = new[] { typeof(CallConvStdcall) })]
@@ -105,7 +105,7 @@ public abstract unsafe class Main
     {
         while (IsRunning)
         {
-            entityList.UpdateEntityList();
+            entityList.UpdateEntityList(ref _localPlayerPawn);
             Thread.Sleep(100);
         }
     }
