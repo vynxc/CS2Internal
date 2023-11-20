@@ -11,44 +11,10 @@ namespace CS2Internal;
 
 public abstract unsafe class Main
 {
-    private static readonly IntPtr ModuleBaseClient = WinApi.GetModuleHandle("client.dll");
+    public static readonly IntPtr ModuleBaseClient = WinApi.GetModuleHandle("client.dll");
     private static readonly IntPtr ModuleBaseEngine = WinApi.GetModuleHandle("engine2.dll");
     private static Entity* _localPlayerPawn;
     private static readonly bool IsRunning = true;
-    private static readonly List<Entity> EntityList = new();
-
-    private static readonly Dictionary<string, int> Bones = new()
-    {
-        { "head", 6 },
-        { "cou", 5 },
-        { "shoulderR", 8 },
-        { "shoulderL", 13 },
-        { "brasR", 9 },
-        { "brasL", 14 },
-        { "handR", 11 },
-        { "handL", 16 },
-        { "cock", 0 },
-        { "kneesR", 23 },
-        { "kneesL", 26 },
-        { "feetR", 24 },
-        { "feetL", 27 }
-    };
-
-    private static readonly List<Tuple<string, string>> Connections = new()
-    {
-        Tuple.Create("cou", "head"),
-        Tuple.Create("cou", "shoulderR"),
-        Tuple.Create("cou", "shoulderL"),
-        Tuple.Create("brasL", "shoulderL"),
-        Tuple.Create("brasR", "shoulderR"),
-        Tuple.Create("brasR", "handR"),
-        Tuple.Create("brasL", "handL"),
-        Tuple.Create("cou", "cock"),
-        Tuple.Create("kneesR", "cock"),
-        Tuple.Create("kneesL", "cock"),
-        Tuple.Create("kneesL", "feetL"),
-        Tuple.Create("kneesR", "feetR")
-    };
 
     [UnmanagedCallersOnly(EntryPoint = "DllMain", CallConvs = new[] { typeof(CallConvStdcall) })]
     private static bool DllMain(IntPtr hModule, uint ulReasonForCall, IntPtr lpReserved)
@@ -56,18 +22,19 @@ public abstract unsafe class Main
         switch (ulReasonForCall)
         {
             case 1:
-
+                var entityList = new EntityList();
+                
                 WinApi.AllocConsole();
-                Renderer.Init(UserInterface);
-                Task.Run(MainThread);
+                Renderer.Init(() => UserInterface(entityList));
+                new TaskFactory(TaskCreationOptions.LongRunning, 0)
+                    .StartNew(() => MainThread(entityList));
                 break;
         }
 
         return true;
     }
 
-
-    private static void UserInterface()
+    private static void UserInterface(EntityList entityList)
     {
         ImGui.Begin("Overlay",
             ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoMove |
@@ -79,8 +46,10 @@ public abstract unsafe class Main
         var viewMatrixPtr = (float*)(ModuleBaseClient + client_dll.dwViewMatrix);
         if (viewMatrixPtr == null) return;
         var matrix = new ReadOnlySpan<float>(viewMatrixPtr, 16);
-        var tempEntityList = new List<Entity>(EntityList); //copy to new list to avoid concurrency issues
-        foreach (var entity in tempEntityList)
+        // var tempEntityList = new List<Entity>(EntityList); //copy to new list to avoid concurrency issues
+        // sike use concurrent collection to avoid concurrency issues
+        // https://learn.microsoft.com/en-us/dotnet/api/system.collections.concurrent.concurrentbag-1.getenumerator?view=net-7.0#remarks
+        foreach (var entity in entityList)
         {
             var engineWidth = 1920;
             var engineHeight = 1080;
@@ -109,10 +78,10 @@ public abstract unsafe class Main
                 .AddRect(topLeft, bottomRight, ImGui.ColorConvertFloat4ToU32(new Vector4(0, 0, 1, 1)), 5,
                     ImDrawCornerFlags.All, 1);
 
-            foreach (var connection in Connections)
+            foreach (var connection in Boners.BoneConnections)
             {
-                var bone1 = Bones[connection.Item1];
-                var bone2 = Bones[connection.Item2];
+                var bone1 = Boners.BoneOffsetMap[connection.Bone1];
+                var bone2 = Boners.BoneOffsetMap[connection.Bone2];
 
                 var bone1Pos = *(Vector3*)(entity.SceneNode->ModalState.BoneArray + bone1 * 32);
                 var bone2Pos = *(Vector3*)(entity.SceneNode->ModalState.BoneArray + bone2 * 32);
@@ -129,63 +98,14 @@ public abstract unsafe class Main
             //ImGui.GetWindowDrawList().AddRect(topLeft, bottomRight, ImGui.GetColorU32(ImGuiCol.ButtonHovered), 5);
         }
 
-        tempEntityList.Clear();
         ImGui.End();
     }
 
-    private static void UpdateEntityList()
-    {
-        if (ModuleBaseClient == IntPtr.Zero)
-            return;
-
-        var localPlayer = *(IntPtr*)(ModuleBaseClient + client_dll.dwLocalPlayerPawn);
-
-        if (localPlayer != IntPtr.Zero)
-            _localPlayerPawn = *(Entity**)localPlayer;
-
-        EntityList.Clear();
-
-        var tempEntityAddress = *(IntPtr*)(ModuleBaseClient + client_dll.dwEntityList);
-        if (tempEntityAddress == IntPtr.Zero) return;
-        for (var i = 0; i < 32; i++)
-        {
-            var listEntry = *(IntPtr*)(tempEntityAddress + (((8 * (i & 0x7FFF)) >> 9) + 16));
-
-            if (listEntry == IntPtr.Zero) continue;
-
-            var player = *(IntPtr*)(listEntry + 120 * (i & 0x1FF));
-
-            if (player == IntPtr.Zero) continue;
-
-            var playerPawn = *(IntPtr*)(player + CCSPlayerController.m_hPlayerPawn);
-
-            if (playerPawn == IntPtr.Zero) continue;
-
-            var listEntry2 = *(IntPtr*)(tempEntityAddress + 0x8 * ((playerPawn & 0x7FFF) >> 9) + 16);
-
-            if (listEntry2 == IntPtr.Zero) continue;
-
-            var pCsPlayerPawn = *(IntPtr*)(listEntry2 + 120 * (playerPawn & 0x1FF));
-
-            if (pCsPlayerPawn == IntPtr.Zero) continue;
-
-            var playerEntity = *(Entity*)pCsPlayerPawn;
-
-            if (localPlayer == pCsPlayerPawn)
-                continue;
-
-            if (playerEntity.Health is > 0 and <= 100)
-                EntityList.Add(playerEntity);
-        }
-    }
-
-
-    private static void MainThread()
+    private static void MainThread(EntityList entityList)
     {
         while (IsRunning)
         {
-            UpdateEntityList();
-
+            entityList.UpdateEntityList(ref _localPlayerPawn);
             Thread.Sleep(100);
         }
     }
