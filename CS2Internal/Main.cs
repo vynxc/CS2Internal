@@ -27,27 +27,27 @@ public abstract unsafe class Main
         { "brasL", 14 },
         { "handR", 11 },
         { "handL", 16 },
-        { "cock", 0 },
+        { "cock", 0 }, // nice
         { "kneesR", 23 },
         { "kneesL", 26 },
         { "feetR", 24 },
         { "feetL", 27 }
     };
 
-    private static readonly List<Tuple<string, string>> Connections = new()
+    private static readonly List<(string Bone1, string Bone2)> Connections = new()
     {
-        Tuple.Create("cou", "head"),
-        Tuple.Create("cou", "shoulderR"),
-        Tuple.Create("cou", "shoulderL"),
-        Tuple.Create("brasL", "shoulderL"),
-        Tuple.Create("brasR", "shoulderR"),
-        Tuple.Create("brasR", "handR"),
-        Tuple.Create("brasL", "handL"),
-        Tuple.Create("cou", "cock"),
-        Tuple.Create("kneesR", "cock"),
-        Tuple.Create("kneesL", "cock"),
-        Tuple.Create("kneesL", "feetL"),
-        Tuple.Create("kneesR", "feetR")
+        ("cou", "head"),
+        ("cou", "shoulderR"),
+        ("cou", "shoulderL"),
+        ("brasL", "shoulderL"),
+        ("brasR", "shoulderR"),
+        ("brasR", "handR"),
+        ("brasL", "handL"),
+        ("cou", "cock"),
+        ("kneesR", "cock"),
+        ("kneesL", "cock"),
+        ("kneesL", "feetL"),
+        ("kneesR", "feetR")
     };
 
     [UnmanagedCallersOnly(EntryPoint = "DllMain", CallConvs = new[] { typeof(CallConvStdcall) })]
@@ -111,8 +111,8 @@ public abstract unsafe class Main
 
             foreach (var connection in Connections)
             {
-                var bone1 = Bones[connection.Item1];
-                var bone2 = Bones[connection.Item2];
+                var bone1 = Bones[connection.Bone1];
+                var bone2 = Bones[connection.Bone2];
 
                 var bone1Pos = *(Vector3*)(entity.SceneNode->ModalState.BoneArray + bone1 * 32);
                 var bone2Pos = *(Vector3*)(entity.SceneNode->ModalState.BoneArray + bone2 * 32);
