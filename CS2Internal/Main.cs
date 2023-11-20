@@ -17,39 +17,6 @@ public abstract unsafe class Main
     private static readonly bool IsRunning = true;
     private static readonly List<Entity> EntityList = new();
 
-    private static readonly Dictionary<string, int> Bones = new()
-    {
-        { "head", 6 },
-        { "cou", 5 },
-        { "shoulderR", 8 },
-        { "shoulderL", 13 },
-        { "brasR", 9 },
-        { "brasL", 14 },
-        { "handR", 11 },
-        { "handL", 16 },
-        { "cock", 0 }, // nice
-        { "kneesR", 23 },
-        { "kneesL", 26 },
-        { "feetR", 24 },
-        { "feetL", 27 }
-    };
-
-    private static readonly List<(string Bone1, string Bone2)> Connections = new()
-    {
-        ("cou", "head"),
-        ("cou", "shoulderR"),
-        ("cou", "shoulderL"),
-        ("brasL", "shoulderL"),
-        ("brasR", "shoulderR"),
-        ("brasR", "handR"),
-        ("brasL", "handL"),
-        ("cou", "cock"),
-        ("kneesR", "cock"),
-        ("kneesL", "cock"),
-        ("kneesL", "feetL"),
-        ("kneesR", "feetR")
-    };
-
     [UnmanagedCallersOnly(EntryPoint = "DllMain", CallConvs = new[] { typeof(CallConvStdcall) })]
     private static bool DllMain(IntPtr hModule, uint ulReasonForCall, IntPtr lpReserved)
     {
@@ -65,7 +32,6 @@ public abstract unsafe class Main
 
         return true;
     }
-
 
     private static void UserInterface()
     {
@@ -109,10 +75,10 @@ public abstract unsafe class Main
                 .AddRect(topLeft, bottomRight, ImGui.ColorConvertFloat4ToU32(new Vector4(0, 0, 1, 1)), 5,
                     ImDrawCornerFlags.All, 1);
 
-            foreach (var connection in Connections)
+            foreach (var connection in Boners.BoneConnections)
             {
-                var bone1 = Bones[connection.Bone1];
-                var bone2 = Bones[connection.Bone2];
+                var bone1 = Boners.BoneOffsetMap[connection.Bone1];
+                var bone2 = Boners.BoneOffsetMap[connection.Bone2];
 
                 var bone1Pos = *(Vector3*)(entity.SceneNode->ModalState.BoneArray + bone1 * 32);
                 var bone2Pos = *(Vector3*)(entity.SceneNode->ModalState.BoneArray + bone2 * 32);
