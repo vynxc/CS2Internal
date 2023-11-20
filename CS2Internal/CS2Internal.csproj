@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net7.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <Configurations>Release</Configurations>
+        <Platforms>x64</Platforms>
+        <PublishAot>true</PublishAot>
+    </PropertyGroup>
+
+    <ItemGroup>
+
+        <EmbeddedResource Include="PInvokeHooker.dll"/>
+        <EmbeddedResource Include="cimgui.dll"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Reference Include="ImGui.NET">
+            <HintPath>..\..\ImGui.NET\bin\Release\ImGui.NET\netstandard2.0\ImGui.NET.dll</HintPath>
+        </Reference>
+    </ItemGroup>
+
+</Project>
