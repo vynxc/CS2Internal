@@ -17,6 +17,39 @@ public abstract unsafe class Main
     private static readonly bool IsRunning = true;
     private static List<Entity> _entityList = new();
 
+    private static Dictionary<string, int> _bones = new()
+    {
+        { "head", 6 },
+        { "cou", 5 },
+        { "shoulderR", 8 },
+        { "shoulderL", 13 },
+        { "brasR", 9 },
+        { "brasL", 14 },
+        { "handR", 11 },
+        { "handL", 16 },
+        { "cock", 0 },
+        { "kneesR", 23 },
+        { "kneesL", 26 },
+        { "feetR", 24 },
+        { "feetL", 27 }
+    };
+
+    private static List<Tuple<string, string>> _connections = new()
+    {
+        Tuple.Create("cou", "head"),
+        Tuple.Create("cou", "shoulderR"),
+        Tuple.Create("cou", "shoulderL"),
+        Tuple.Create("brasL", "shoulderL"),
+        Tuple.Create("brasR", "shoulderR"),
+        Tuple.Create("brasR", "handR"),
+        Tuple.Create("brasL", "handL"),
+        Tuple.Create("cou", "cock"),
+        Tuple.Create("kneesR", "cock"),
+        Tuple.Create("kneesL", "cock"),
+        Tuple.Create("kneesL", "feetL"),
+        Tuple.Create("kneesR", "feetR")
+    };
+
     [UnmanagedCallersOnly(EntryPoint = "DllMain", CallConvs = new[] { typeof(CallConvStdcall) })]
     private static bool DllMain(IntPtr hModule, uint ulReasonForCall, IntPtr lpReserved)
     {
@@ -32,7 +65,8 @@ public abstract unsafe class Main
 
         return true;
     }
-    
+
+
     private static void UserInterface()
     {
         ImGui.Begin("Overlay",
@@ -42,9 +76,11 @@ public abstract unsafe class Main
         ImGui.SetWindowPos(new Vector2(0, 0), ImGuiCond.Always);
         ImGui.SetWindowSize(new Vector2(io.DisplaySize.X, io.DisplaySize.Y), ImGuiCond.Always);
 
-        var matrix = new ReadOnlySpan<float>((float*)(ModuleBaseClient + client_dll.dwViewMatrix), 16);
-        
-        foreach (var entity in _entityList)
+        var viewMatrixPtr = (float*)(ModuleBaseClient + client_dll.dwViewMatrix);
+        if (viewMatrixPtr == null) return;
+        var matrix = new ReadOnlySpan<float>(viewMatrixPtr, 16);
+        var tempEntityList = new List<Entity>(_entityList); //copy to new list to avoid concurrency issues
+        foreach (var entity in tempEntityList)
         {
             var engineWidth = 1920;
             var engineHeight = 1080;
@@ -55,10 +91,12 @@ public abstract unsafe class Main
                 !WorldToScreen(origin, matrix, engineWidth, engineHeight, out var screenBase))
                 continue;
 
-
-            var height = Math.Abs(screenHead.Y - screenBase.Y);
+            var height = Convert.ToSingle(Math.Sqrt(Math.Pow(screenHead.X - screenBase.X, 2) +
+                                                    Math.Pow(screenHead.Y - screenBase.Y, 2)));
+            height *= 1.2f;
             var width = height / 2;
-            var topLeft = screenHead with { X = screenHead.X - width / 2 };
+
+            var topLeft = new Vector2(screenBase.X - width / 2, screenBase.Y - height);
             var bottomRight = screenBase with { X = screenBase.X + width / 2 };
 
             ImGui.GetWindowDrawList().AddRectFilled(topLeft, bottomRight,
@@ -71,16 +109,42 @@ public abstract unsafe class Main
                 .AddRect(topLeft, bottomRight, ImGui.ColorConvertFloat4ToU32(new Vector4(0, 0, 1, 1)), 5,
                     ImDrawCornerFlags.All, 1);
 
+            foreach (var connection in _connections)
+            {
+                var bone1 = _bones[connection.Item1];
+                var bone2 = _bones[connection.Item2];
+
+                var bone1Pos = *(Vector3*)(entity.SceneNode->ModalState.BoneArray + bone1 * 32);
+                var bone2Pos = *(Vector3*)(entity.SceneNode->ModalState.BoneArray + bone2 * 32);
+
+                if (!WorldToScreen(bone1Pos, matrix, engineWidth, engineHeight, out var screenBone1) ||
+                    !WorldToScreen(bone2Pos, matrix, engineWidth, engineHeight, out var screenBone2))
+                    continue;
+
+                ImGui.GetWindowDrawList().AddLine(screenBone1, screenBone2,
+                    ImGui.ColorConvertFloat4ToU32(new Vector4(0, 0, 1, 1)), 2);
+            }
+
+
             //ImGui.GetWindowDrawList().AddRect(topLeft, bottomRight, ImGui.GetColorU32(ImGuiCol.ButtonHovered), 5);
         }
 
+        tempEntityList.Clear();
         ImGui.End();
     }
 
-    private static void UpdateEntityList(IntPtr localPlayerPtr, ICollection<Entity> entityList)
+    private static void UpdateEntityList()
     {
-        entityList.Clear();
-        
+        if (ModuleBaseClient == IntPtr.Zero)
+            return;
+
+        var localPlayer = *(IntPtr*)(ModuleBaseClient + client_dll.dwLocalPlayerPawn);
+
+        if (localPlayer != IntPtr.Zero)
+            _localPlayerPawn = *(Entity**)localPlayer;
+
+        _entityList.Clear();
+
         var tempEntityAddress = *(IntPtr*)(ModuleBaseClient + client_dll.dwEntityList);
         if (tempEntityAddress == IntPtr.Zero) return;
         for (var i = 0; i < 32; i++)
@@ -107,12 +171,11 @@ public abstract unsafe class Main
 
             var playerEntity = *(Entity*)pCsPlayerPawn;
 
-            //dont work cause its not supposed to 
-            if (localPlayerPtr == pCsPlayerPawn)
+            if (localPlayer == pCsPlayerPawn)
                 continue;
 
             if (playerEntity.Health is > 0 and <= 100)
-                entityList.Add(playerEntity);
+                _entityList.Add(playerEntity);
         }
     }
 
@@ -121,26 +184,9 @@ public abstract unsafe class Main
     {
         while (IsRunning)
         {
-            try
-            {
-                if (ModuleBaseClient == IntPtr.Zero)
-                    continue;
+            UpdateEntityList();
 
-                var localPlayer = *(IntPtr*)(ModuleBaseClient + client_dll.dwLocalPlayerPawn);
-
-                if (localPlayer == IntPtr.Zero)
-                    continue;
-                var viewMatrixPtr = (float*)(ModuleBaseClient + client_dll.dwViewMatrix);
-                if (viewMatrixPtr == null) continue;
-                _localPlayerPawn = *(Entity**)localPlayer;
-                UpdateEntityList(localPlayer, _entityList);
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e);
-            }
-
-            Thread.Sleep(10);
+            Thread.Sleep(100);
         }
     }
 
