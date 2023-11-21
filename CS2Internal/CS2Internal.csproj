@@ -17,9 +17,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Reference Include="ImGui.NET">
-            <HintPath>..\..\ImGui.NET\bin\Release\ImGui.NET\netstandard2.0\ImGui.NET.dll</HintPath>
-        </Reference>
+      <PackageReference Include="ImGui.NET" Version="1.90.0.1" />
     </ItemGroup>
 
 </Project>
