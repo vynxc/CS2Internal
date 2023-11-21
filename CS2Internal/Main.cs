@@ -35,8 +35,7 @@ public abstract unsafe class Main
                 _stopwatch = new Stopwatch();
                 _stopwatch.Start();
                 Renderer.Init(UserInterface);
-                new TaskFactory(TaskCreationOptions.LongRunning, 0)
-                    .StartNew(MainThread);
+                Task.Run(MainThread);
                 break;
         }
 
