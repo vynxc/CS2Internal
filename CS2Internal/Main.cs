@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System.Diagnostics;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using CS2Internal.Game;
@@ -16,6 +17,12 @@ public abstract unsafe class Main
     private static Entity* _localPlayerPawn;
     private static readonly bool IsRunning = true;
     private static readonly List<Entity> EntityList = new();
+    private static readonly object EntityListLock = new();
+    private static int _frameCounter = 0;
+    private static double _timeCounter = 0.0;
+    private const double RefreshTime = 0.5; // Time until update in seconds
+    private static double _fps = 0.0;
+    private static Stopwatch? _stopwatch;
 
     private static readonly Dictionary<string, int> Bones = new()
     {
@@ -58,6 +65,8 @@ public abstract unsafe class Main
             case 1:
 
                 WinApi.AllocConsole();
+                _stopwatch = new Stopwatch();
+                _stopwatch.Start();
                 Renderer.Init(UserInterface);
                 Task.Run(MainThread);
                 break;
@@ -69,9 +78,35 @@ public abstract unsafe class Main
 
     private static void UserInterface()
     {
+        _frameCounter++;
+
+        // Get the elapsed time since the last Update call
+        var deltaTime = _stopwatch!.Elapsed.TotalSeconds;
+
+        // Reset stopwatch
+        _stopwatch.Restart();
+
+        // Add deltaTime to the time counter
+        _timeCounter += deltaTime;
+        if (_timeCounter >= RefreshTime)
+        {
+            // Calculate FPS
+            _fps = _frameCounter / _timeCounter;
+
+            // Reset counters
+            _frameCounter = 0;
+            _timeCounter -= RefreshTime;
+
+            // Print FPS to the console
+            Console.WriteLine($"FPS: {_fps}");
+        }
+
         ImGui.Begin("Overlay",
             ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoMove |
             ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoInputs | ImGuiWindowFlags.NoBackground);
+
+        ImGui.GetWindowDrawList().AddText(ImGui.GetFont(), 25, new Vector2(15, 15),
+            ImGui.ColorConvertFloat4ToU32(new Vector4(1, 0, 0, 1)), $"FPS: {_fps}");
         var io = ImGui.GetIO();
         ImGui.SetWindowPos(new Vector2(0, 0), ImGuiCond.Always);
         ImGui.SetWindowSize(new Vector2(io.DisplaySize.X, io.DisplaySize.Y), ImGuiCond.Always);
@@ -79,9 +114,22 @@ public abstract unsafe class Main
         var viewMatrixPtr = (float*)(ModuleBaseClient + client_dll.dwViewMatrix);
         if (viewMatrixPtr == null) return;
         var matrix = new ReadOnlySpan<float>(viewMatrixPtr, 16);
-        var tempEntityList = new List<Entity>(EntityList); //copy to new list to avoid concurrency issues
+        List<Entity> tempEntityList;
+        lock (EntityListLock)
+        {
+            tempEntityList = new List<Entity>(EntityList);
+        }
+
         foreach (var entity in tempEntityList)
         {
+            var color = ImGui.ColorConvertFloat4ToU32(new Vector4(1, 0, 0, 1));
+            if (entity.EntitySpottedState.Spotted)
+                color = ImGui.ColorConvertFloat4ToU32(new Vector4(0, 1, 0, 1));
+
+
+            if (entity.SceneNode->Dormant)
+                continue;
+
             var engineWidth = 1920;
             var engineHeight = 1080;
 
@@ -97,16 +145,17 @@ public abstract unsafe class Main
             var width = height / 2;
 
             var topLeft = new Vector2(screenBase.X - width / 2, screenBase.Y - height);
-            var bottomRight = screenBase with { X = screenBase.X + width / 2 };
+
+            var bottomRight = new Vector2(screenBase.X + width / 2, screenBase.Y + height / 10);
 
             ImGui.GetWindowDrawList().AddRectFilled(topLeft, bottomRight,
                 ImGui.ColorConvertFloat4ToU32(new Vector4(0, 0, 0, 0.18f)));
 
             ImGui.GetWindowDrawList().AddRect(topLeft, bottomRight,
-                ImGui.ColorConvertFloat4ToU32(new Vector4(0, 0, 0, 1)), 5, ImDrawCornerFlags.All, 2);
+                ImGui.ColorConvertFloat4ToU32(new Vector4(0, 0, 0, 1)), 3, ImDrawCornerFlags.All, 2);
 
             ImGui.GetWindowDrawList()
-                .AddRect(topLeft, bottomRight, ImGui.ColorConvertFloat4ToU32(new Vector4(0, 0, 1, 1)), 5,
+                .AddRect(topLeft, bottomRight, color, 3,
                     ImDrawCornerFlags.All, 1);
 
             foreach (var connection in Connections)
@@ -122,7 +171,7 @@ public abstract unsafe class Main
                     continue;
 
                 ImGui.GetWindowDrawList().AddLine(screenBone1, screenBone2,
-                    ImGui.ColorConvertFloat4ToU32(new Vector4(0, 0, 1, 1)), 2);
+                    color, 2);
             }
 
 
@@ -143,7 +192,10 @@ public abstract unsafe class Main
         if (localPlayer != IntPtr.Zero)
             _localPlayerPawn = *(Entity**)localPlayer;
 
-        EntityList.Clear();
+        lock (EntityListLock)
+        {
+            EntityList.Clear();
+        }
 
         var tempEntityAddress = *(IntPtr*)(ModuleBaseClient + client_dll.dwEntityList);
         if (tempEntityAddress == IntPtr.Zero) return;
@@ -174,8 +226,11 @@ public abstract unsafe class Main
             if (localPlayer == pCsPlayerPawn)
                 continue;
 
-            if (playerEntity.Health is > 0 and <= 100)
+            if (playerEntity.Health is <= 0 or > 100) continue;
+            lock (EntityListLock)
+            {
                 EntityList.Add(playerEntity);
+            }
         }
     }
 

@@ -10,6 +10,21 @@ public struct Entity
 
     [FieldOffset(C_BaseEntity.m_pGameSceneNode)]
     public unsafe GameSceneNode* SceneNode;
+
+    [FieldOffset(C_BaseEntity.m_iTeamNum)] public int TeamNum;
+
+    [FieldOffset(C_CSPlayerPawnBase.m_entitySpottedState)]
+    public EntitySpottedState EntitySpottedState;
+}
+
+[StructLayout(LayoutKind.Explicit)]
+public unsafe struct EntitySpottedState
+{
+    [FieldOffset(EntitySpottedState_t.m_bSpotted)]
+    public bool Spotted;
+
+    [FieldOffset(EntitySpottedState_t.m_bSpottedByMask)]
+    public fixed uint SpottedByMask[2];
 }
 
 [StructLayout(LayoutKind.Explicit)]

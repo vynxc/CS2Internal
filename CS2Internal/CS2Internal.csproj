@@ -12,7 +12,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-
         <EmbeddedResource Include="PInvokeHooker.dll"/>
         <EmbeddedResource Include="cimgui.dll"/>
     </ItemGroup>
