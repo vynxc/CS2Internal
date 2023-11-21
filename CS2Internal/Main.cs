@@ -118,11 +118,11 @@ public abstract unsafe class Main
                 ImGui.ColorConvertFloat4ToU32(new Vector4(0, 0, 0, 0.18f)));
 
             ImGui.GetWindowDrawList().AddRect(topLeft, bottomRight,
-                ImGui.ColorConvertFloat4ToU32(new Vector4(0, 0, 0, 1)), 3, ImDrawFlags.RoundCornersAll, 2);
+                ImGui.ColorConvertFloat4ToU32(new Vector4(0, 0, 0, 1)), 3, ImDrawCornerFlags.All, 2);
 
             ImGui.GetWindowDrawList()
                 .AddRect(topLeft, bottomRight, color, 3,
-                    ImDrawFlags.RoundCornersAll, 1);
+                    ImDrawCornerFlags.All, 1);
 
             foreach (var connection in Boners.BoneConnections)
             {
