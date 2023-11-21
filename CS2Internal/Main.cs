@@ -24,39 +24,6 @@ public abstract unsafe class Main
     private static double _fps = 0.0;
     private static Stopwatch? _stopwatch;
 
-    private static readonly Dictionary<string, int> Bones = new()
-    {
-        { "head", 6 },
-        { "cou", 5 },
-        { "shoulderR", 8 },
-        { "shoulderL", 13 },
-        { "brasR", 9 },
-        { "brasL", 14 },
-        { "handR", 11 },
-        { "handL", 16 },
-        { "cock", 0 },
-        { "kneesR", 23 },
-        { "kneesL", 26 },
-        { "feetR", 24 },
-        { "feetL", 27 }
-    };
-
-    private static readonly List<Tuple<string, string>> Connections = new()
-    {
-        Tuple.Create("cou", "head"),
-        Tuple.Create("cou", "shoulderR"),
-        Tuple.Create("cou", "shoulderL"),
-        Tuple.Create("brasL", "shoulderL"),
-        Tuple.Create("brasR", "shoulderR"),
-        Tuple.Create("brasR", "handR"),
-        Tuple.Create("brasL", "handL"),
-        Tuple.Create("cou", "cock"),
-        Tuple.Create("kneesR", "cock"),
-        Tuple.Create("kneesL", "cock"),
-        Tuple.Create("kneesL", "feetL"),
-        Tuple.Create("kneesR", "feetR")
-    };
-
     [UnmanagedCallersOnly(EntryPoint = "DllMain", CallConvs = new[] { typeof(CallConvStdcall) })]
     private static bool DllMain(IntPtr hModule, uint ulReasonForCall, IntPtr lpReserved)
     {
@@ -68,13 +35,13 @@ public abstract unsafe class Main
                 _stopwatch = new Stopwatch();
                 _stopwatch.Start();
                 Renderer.Init(UserInterface);
-                Task.Run(MainThread);
+                new TaskFactory(TaskCreationOptions.LongRunning, 0)
+                    .StartNew(MainThread);
                 break;
         }
 
         return true;
     }
-
 
     private static void UserInterface()
     {
@@ -158,10 +125,10 @@ public abstract unsafe class Main
                 .AddRect(topLeft, bottomRight, color, 3,
                     ImDrawCornerFlags.All, 1);
 
-            foreach (var connection in Connections)
+            foreach (var connection in Boners.BoneConnections)
             {
-                var bone1 = Bones[connection.Item1];
-                var bone2 = Bones[connection.Item2];
+                var bone1 = Boners.BoneOffsetMap[connection.Bone1];
+                var bone2 = Boners.BoneOffsetMap[connection.Bone2];
 
                 var bone1Pos = *(Vector3*)(entity.SceneNode->ModalState.BoneArray + bone1 * 32);
                 var bone2Pos = *(Vector3*)(entity.SceneNode->ModalState.BoneArray + bone2 * 32);
