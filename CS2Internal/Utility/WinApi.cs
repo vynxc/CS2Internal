@@ -1,6 +1,6 @@
 ﻿namespace CS2Internal.Utility;
-using System.Runtime.InteropServices;
 
+using System.Runtime.InteropServices;
 
 public enum WM : int
 {
@@ -265,20 +265,29 @@ public enum WM : int
 
     USER = 0x0400,
 
-    REFLECT = USER + 0x1C00,
+    REFLECT = USER + 0x1C00
 }
+
 public static class WinApi
 {
+    [DllImport("user32.dll", CharSet = CharSet.Auto, ExactSpelling = true)]
+    public static extern short GetAsyncKeyState(int keyCode);
 
-    [DllImport("kernel32.dll", EntryPoint = "AllocConsole", SetLastError = true, CallingConvention = CallingConvention.StdCall)] public static extern int AllocConsole();
+    [DllImport("kernel32.dll", EntryPoint = "AllocConsole", SetLastError = true,
+        CallingConvention = CallingConvention.StdCall)]
+    public static extern int AllocConsole();
 
-    [DllImport("kernel32.dll")] public static extern IntPtr GetProcAddress(IntPtr hModule, string lpProcName);
+    [DllImport("kernel32.dll")]
+    public static extern IntPtr GetProcAddress(IntPtr hModule, string lpProcName);
 
-    [DllImport("kernel32.dll", CharSet = CharSet.Auto)] public static extern IntPtr GetModuleHandle(string lpModuleName);
+    [DllImport("kernel32.dll", CharSet = CharSet.Auto)]
+    public static extern IntPtr GetModuleHandle(string lpModuleName);
 
-    [DllImport("user32.dll", EntryPoint = "GetWindowLong")] public static extern IntPtr GetWindowLongPtr32(IntPtr hWnd, int nIndex);
+    [DllImport("user32.dll", EntryPoint = "GetWindowLong")]
+    public static extern IntPtr GetWindowLongPtr32(IntPtr hWnd, int nIndex);
 
-    [DllImport("user32.dll", EntryPoint = "GetWindowLongPtr")] public static extern IntPtr GetWindowLongPtr64(IntPtr hWnd, int nIndex);
+    [DllImport("user32.dll", EntryPoint = "GetWindowLongPtr")]
+    public static extern IntPtr GetWindowLongPtr64(IntPtr hWnd, int nIndex);
 
     public static IntPtr GetWindowLongPtr(IntPtr hWnd, int nIndex)
     {
@@ -288,20 +297,25 @@ public static class WinApi
             return GetWindowLongPtr32(hWnd, nIndex);
     }
 
-    [DllImport("user32.dll", EntryPoint = "SetWindowLong")] public static extern IntPtr SetWindowLong32(IntPtr hWnd, int nIndex, IntPtr newValue);
+    [DllImport("kernel32.dll")]
+    public static extern bool FreeLibrary(IntPtr hModule);
 
-    [DllImport("user32.dll", EntryPoint = "SetWindowLongPtr")] public static extern IntPtr SetWindowLongPtr64(IntPtr hWnd, int nIndex, IntPtr newValue);
+    [DllImport("user32.dll", EntryPoint = "SetWindowLong")]
+    public static extern IntPtr SetWindowLong32(IntPtr hWnd, int nIndex, IntPtr newValue);
+
+    [DllImport("user32.dll", EntryPoint = "SetWindowLongPtr")]
+    public static extern IntPtr SetWindowLongPtr64(IntPtr hWnd, int nIndex, IntPtr newValue);
+
     public static IntPtr SetWindowLongPtr(IntPtr hWnd, int nIndex, IntPtr newValue)
     {
-        if (IntPtr.Size != 4)
-        {
-            return SetWindowLongPtr64(hWnd, nIndex, newValue);
-        }
+        if (IntPtr.Size != 4) return SetWindowLongPtr64(hWnd, nIndex, newValue);
 
         return SetWindowLong32(hWnd, nIndex, newValue);
     }
 
-    [DllImport("user32.dll")] public static extern IntPtr CallWindowProc(IntPtr lpPrevWndFunc, IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
+    [DllImport("user32.dll")]
+    public static extern IntPtr
+        CallWindowProc(IntPtr lpPrevWndFunc, IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
 
     public enum GWL
     {
@@ -314,7 +328,6 @@ public static class WinApi
         GWL_ID = -12
     }
 
-    [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Ansi)] public static extern IntPtr LoadLibrary([MarshalAs(UnmanagedType.LPStr)] string lpFileName);
-
+    [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Ansi)]
+    public static extern IntPtr LoadLibrary([MarshalAs(UnmanagedType.LPStr)] string lpFileName);
 }
-

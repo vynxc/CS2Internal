@@ -18,13 +18,10 @@ public struct Entity
 }
 
 [StructLayout(LayoutKind.Explicit)]
-public unsafe struct EntitySpottedState
+public struct EntitySpottedState
 {
     [FieldOffset(EntitySpottedState_t.m_bSpotted)]
     public bool Spotted;
-
-    [FieldOffset(EntitySpottedState_t.m_bSpottedByMask)]
-    public fixed uint SpottedByMask[2];
 }
 
 [StructLayout(LayoutKind.Explicit)]
@@ -34,10 +31,13 @@ public struct GameSceneNode
     public Vector3 VecOriginAbsolute;
 
     [FieldOffset(CGameSceneNode.m_bDormant)]
-    public bool Dormant;
+    public int Dormant;
 
     [FieldOffset(CSkeletonInstance.m_modelState)]
     public ModelState ModalState;
+
+    [FieldOffset(CGameSceneNode.m_angRotation)]
+    public Vector3 VecRotation;
 }
 
 [StructLayout(LayoutKind.Explicit)]

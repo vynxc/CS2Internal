@@ -22,4 +22,8 @@
         </Reference>
     </ItemGroup>
 
+    <ItemGroup>
+        <PackageReference Include="Yotic.Hook" Version="2.0.3"/>
+    </ItemGroup>
+
 </Project>
