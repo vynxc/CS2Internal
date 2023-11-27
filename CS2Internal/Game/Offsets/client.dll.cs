@@ -2347,7 +2347,7 @@ public static class C_CSPlayerPawnBase
     public const int m_pViewModelServices = 0x1270; // CPlayer_ViewModelServices*
     public const int m_fRenderingClipPlane = 0x1278; // float[4]
     public const int m_nLastClipPlaneSetupFrame = 0x1288; // int32_t
-    public const int m_vecLastClipCameraPos = 0x128C; // Vector
+    public const int m_vecLastClipCameraPos = 0x128C; // Vector 
     public const int m_vecLastClipCameraForward = 0x1298; // Vector
     public const int m_bClipHitStaticWorld = 0x12A4; // bool
     public const int m_bCachedPlaneIsValid = 0x12A5; // bool

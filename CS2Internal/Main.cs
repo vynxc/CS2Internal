@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using CS2Internal.Game;
@@ -44,11 +45,28 @@ public abstract partial class Main
         if (ShowMenu) ImGuiUi.RenderMenu();
 
         if (Config.Overlay) ImGuiUi.RenderOverlay();
+
+
+        // if (Config.Aimbot)
     }
 
+    private static unsafe void NoRecoil()
+    {
+        var oPunch = new Vector3(0, 0, 0);
+
+        while (true)
+        {
+            var punchAngle = LocalPlayerPawn->AimPunchAngle * 2;
+            if (LocalPlayerPawn->ShotsFired > 1)
+                Cs2.SetViewAngle(Vector3.Normalize(LocalPlayerPawn->ViewAngle + oPunch - punchAngle));
+
+            oPunch = punchAngle;
+        }
+    }
 
     private static void MainThread()
     {
+        Task.Run(NoRecoil);
         while (IsRunning)
         {
             Cs2.UpdateEntityList();
@@ -60,6 +78,12 @@ public abstract partial class Main
             }
 
             if (WinApi.GetAsyncKeyState(0x23) != 0) WinApi.FreeLibrary(Module);
+            if (WinApi.GetAsyncKeyState(0x21) != 0)
+            {
+                Cs2.SetViewAngle(new Vector3(50, 50, 50));
+                Thread.Sleep(200);
+            }
+
             Thread.Sleep(30);
         }
     }

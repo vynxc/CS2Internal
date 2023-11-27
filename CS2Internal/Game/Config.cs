@@ -4,6 +4,7 @@ namespace CS2Internal.Game;
 
 public static class Config
 {
+    public static bool Aimbot = true;
     public static bool Overlay = true;
     public static bool Fps = true;
     public static float Fov = 90f;

@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using CS2Internal.Game;
+using CS2Internal.Utility;
 using ImGuiNET;
 
 namespace CS2Internal.ImGuiInterface;
@@ -29,6 +30,8 @@ public partial class ImGuiUi
             tempEntityList = new List<Entity>(Main.EntityList);
         }
 
+        float maxAimDistance = 100000;
+        Vector3 aimPos = new();
         foreach (var entity in tempEntityList)
         {
             if (entity.SceneNode->Dormant != 0)
@@ -44,16 +47,34 @@ public partial class ImGuiUi
                 !Cs2.WorldToScreen(origin, matrix, engineWidth, engineHeight, out var screenBase))
                 continue;
 
+            var head = *(Vector3*)(entity.SceneNode->ModalState.BoneArray + 6 * 32);
+            Cs2.WorldToScreen(head, matrix, engineWidth, engineHeight, out var headScreen);
+            var distanceToSight = Vector2.Distance(headScreen, new Vector2(engineWidth / 2, engineHeight / 2));
+            if (distanceToSight < maxAimDistance)
+            {
+                maxAimDistance = distanceToSight;
+                aimPos = head;
+                aimPos.Z -= 1f;
+            }
+
             var height = Convert.ToSingle(Math.Sqrt(Math.Pow(screenHead.X - screenBase.X, 2) +
                                                     Math.Pow(screenHead.Y - screenBase.Y, 2)));
             height *= 1.2f;
+
             var width = height / 2;
             if (Config.BoxEsp && Config.Esp)
-                Drawing.Draw3dBox(headPos, origin, entity.SceneNode->VecRotation.X, 25, 1, matrix);
+                Drawing.Draw3dBox(headPos, origin, entity.SceneNode->ViewAngle.X, matrix);
             else if (Config.Esp) Drawing.Draw2dBox(screenBase, width, height, Config.BoxColor);
 
             if (Config.SkeletonEsp)
                 Drawing.DrawSkeleton(entity, matrix, engineWidth, engineHeight);
+        }
+
+        if (WinApi.GetAsyncKeyState(0x02) != 0)
+        {
+            Console.WriteLine("Aimbot start");
+
+            if (aimPos != default) Cs2.AimAt(aimPos);
         }
 
         tempEntityList.Clear();

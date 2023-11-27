@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using System.Runtime.InteropServices;
 
 namespace CS2Internal.Game;
 
@@ -13,7 +14,11 @@ public static class Cs2
 
             var localPlayer = *(IntPtr*)(Main.ModuleBaseClient + client_dll.dwLocalPlayerPawn);
 
-            if (localPlayer != IntPtr.Zero) Main.LocalPlayerPawn = *(Entity**)localPlayer;
+            if (localPlayer != IntPtr.Zero)
+            {
+                Main.LocalPlayerPawn = (Entity*)localPlayer;
+                Main.LocalPlayerPawnPtr = localPlayer;
+            }
 
 
             lock (Main.EntityListLock)
@@ -56,6 +61,43 @@ public static class Cs2
         {
             Console.WriteLine(e);
         }
+    }
+
+    public static Vector3 GetViewAngle()
+    {
+        var viewAnglesPtr = new IntPtr(Main.ModuleBaseClient + client_dll.dwViewAngles);
+
+        return Marshal.PtrToStructure<Vector3>(viewAnglesPtr);
+    }
+
+    public static void SetViewAngle(Vector3 angle)
+    {
+        try
+        {
+            var viewAnglesPtr = new IntPtr(Main.ModuleBaseClient + client_dll.dwViewAngles);
+
+            Marshal.StructureToPtr(angle, viewAnglesPtr, false);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+        }
+    }
+
+
+    public static unsafe void AimAt(Vector3 target)
+    {
+        var origin = Main.LocalPlayerPawn->SceneNode->VecOriginAbsolute;
+        var viewOffset = Main.LocalPlayerPawn->ViewOffset;
+        var myPos = origin + viewOffset;
+
+        var deltaVec = target - myPos;
+        var deltaVecLength = Math.Sqrt(deltaVec.X * deltaVec.X + deltaVec.Y * deltaVec.Y + deltaVec.Z * deltaVec.Z);
+        var pitch = (float)-Math.Asin(deltaVec.Z / deltaVecLength) * (180 / (float)Math.PI);
+        var yaw = (float)Math.Atan2(deltaVec.Y, deltaVec.X) * (180 / (float)Math.PI);
+
+        if (pitch >= -89 && pitch <= 89 && yaw >= -180 && yaw <= 180)
+            SetViewAngle(new Vector3(pitch, yaw, 0));
     }
 
     public static bool WorldToScreen(Vector3 pos, ReadOnlySpan<float> m, int windowWidth, int windowHeight,
