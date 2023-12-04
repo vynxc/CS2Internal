@@ -6,7 +6,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-        <Configurations>Release</Configurations>
+        <Configurations>Release;Debug</Configurations>
         <Platforms>x64</Platforms>
         <PublishAot>true</PublishAot>
     </PropertyGroup>

@@ -11,8 +11,16 @@ public static class Drawing
         return Math.PI / 180 * angle;
     }
 
+    public static void DrawAimbotFov()
+    {
+        var color = ImGui.ColorConvertFloat4ToU32(new Vector4(1, 0, 0, 1));
+        var drawList = ImGui.GetWindowDrawList();
+        var center = new Vector2(ImGui.GetIO().DisplaySize.X / 2, ImGui.GetIO().DisplaySize.Y / 2);
+        drawList.AddCircle(center, Config.AimFoV, color, 100, 1);
+    }
+
     public static void Draw3dBox(Vector3 head, Vector3 foot, float xAngle,
-        ReadOnlySpan<float> matrix)
+        ReadOnlySpan<float> matrix, Vector4 vec4Color)
     {
         const int width = 25;
         const int thickness = 1;
@@ -42,7 +50,7 @@ public static class Drawing
                 !Cs2.WorldToScreen(tops[i], matrix, engineWidth, engineHeight, out screenTops[i]))
                 return;
 
-        var color = ImGui.ColorConvertFloat4ToU32(new Vector4(1, 0, 0, 1));
+        var color = ImGui.ColorConvertFloat4ToU32(vec4Color);
 
         var drawList = ImGui.GetWindowDrawList();
 
@@ -54,11 +62,11 @@ public static class Drawing
         }
     }
 
-    public static void Draw2dBox(Vector2 screenBase, float width, float height, Vector4 color)
+    public static void Draw2dBox(Vector2 foot, float width, float height, Vector4 color)
     {
-        var topLeft = new Vector2(screenBase.X - width / 2, screenBase.Y - height);
+        var topLeft = new Vector2(foot.X - width / 2, foot.Y - height);
 
-        var bottomRight = new Vector2(screenBase.X + width / 2, screenBase.Y + height / 10);
+        var bottomRight = new Vector2(foot.X + width / 2, foot.Y + height / 10);
 
         ImGui.GetWindowDrawList().AddRectFilled(topLeft, bottomRight,
             ImGui.ColorConvertFloat4ToU32(new Vector4(0, 0, 0, 0.18f)));
@@ -71,22 +79,36 @@ public static class Drawing
                 ImDrawCornerFlags.All, 1);
     }
 
-    public static unsafe void DrawSkeleton(Entity entity, ReadOnlySpan<float> matrix, int engineWidth, int engineHeight)
+    public static void DrawTracers(Vector2 foot)
+    {
+        ImGui.GetWindowDrawList().AddLine(new Vector2(ImGui.GetIO().DisplaySize.X / 2, ImGui.GetIO().DisplaySize.Y / 2),
+            foot, ImGui.ColorConvertFloat4ToU32(Config.TracerColor), 1);
+    }
+
+    public static void DrawText(Vector2 foot, string text)
+    {
+        var textWidth = ImGui.CalcTextSize(text).X;
+        ImGui.GetWindowDrawList().AddText(new Vector2(foot.X - textWidth / 2, foot.Y - 20),
+            ImGui.ColorConvertFloat4ToU32(Config.NameColor), text);
+    }
+
+    public static unsafe void DrawSkeleton(EntityPawn entityPawn, ReadOnlySpan<float> matrix, int engineWidth,
+        int engineHeight)
     {
         foreach (var connection in Boners.BoneConnections)
         {
             var bone1 = Boners.BoneOffsetMap[connection.Bone1];
             var bone2 = Boners.BoneOffsetMap[connection.Bone2];
 
-            var bone1Pos = *(Vector3*)(entity.SceneNode->ModalState.BoneArray + bone1 * 32);
-            var bone2Pos = *(Vector3*)(entity.SceneNode->ModalState.BoneArray + bone2 * 32);
+            var bone1Pos = *(Vector3*)(entityPawn.SceneNode->ModalState.BoneArray + bone1 * 32);
+            var bone2Pos = *(Vector3*)(entityPawn.SceneNode->ModalState.BoneArray + bone2 * 32);
 
             if (!Cs2.WorldToScreen(bone1Pos, matrix, engineWidth, engineHeight, out var screenBone1) ||
                 !Cs2.WorldToScreen(bone2Pos, matrix, engineWidth, engineHeight, out var screenBone2))
                 continue;
 
             ImGui.GetWindowDrawList().AddLine(screenBone1, screenBone2,
-                ImGui.ColorConvertFloat4ToU32(Config.BoxColor), 2);
+                ImGui.ColorConvertFloat4ToU32(Config.SkeletonColor), 2);
         }
     }
 }

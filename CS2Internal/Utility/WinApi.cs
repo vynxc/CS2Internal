@@ -269,7 +269,15 @@ public enum WM : int
 }
 
 public static class WinApi
+
 {
+    public const int MOUSEEVENTF_LEFTDOWN = 0x02;
+    public const int MOUSEEVENTF_LEFTUP = 0x04;
+    public const int MOUSEEVENTF_ABSOLUTE = 0x8000;
+
+    [DllImport("user32.dll", EntryPoint = "mouse_event")]
+    public static extern void Mouse_Event(int dwFlags, int dx, int dy, int cButtons, int dwExtraInfo);
+
     [DllImport("user32.dll", CharSet = CharSet.Auto, ExactSpelling = true)]
     public static extern short GetAsyncKeyState(int keyCode);
 

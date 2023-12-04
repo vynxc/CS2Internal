@@ -44,29 +44,47 @@ public abstract partial class Main
 
         if (ShowMenu) ImGuiUi.RenderMenu();
 
-        if (Config.Overlay) ImGuiUi.RenderOverlay();
+        ImGuiUi.RenderOverlay();
 
 
         // if (Config.Aimbot)
     }
 
+    private static Vector2 _oldPunch;
+
     private static unsafe void NoRecoil()
     {
-        var oPunch = new Vector3(0, 0, 0);
-
         while (true)
         {
-            var punchAngle = LocalPlayerPawn->AimPunchAngle * 2;
-            if (LocalPlayerPawn->ShotsFired > 1)
-                Cs2.SetViewAngle(Vector3.Normalize(LocalPlayerPawn->ViewAngle + oPunch - punchAngle));
+            var punchCache = LocalPlayerPawn->AimPunchCache;
+            var tempAngle = new Vector3(0, 0, 0);
+            var punchAngle = *(Vector3*)(punchCache.Data + (punchCache.Count - 1) * (ulong)sizeof(Vector3));
+            if (punchCache.Count is > 0 and < 0xFFFF)
+            {
+                var viewAngles = Cs2.GetViewAngle();
+                tempAngle.X = viewAngles.X + _oldPunch.X - punchAngle.X * 2;
+                tempAngle.Y = viewAngles.Y + _oldPunch.Y - punchAngle.Y * 2;
+                tempAngle = Vector3.Normalize(tempAngle);
 
-            oPunch = punchAngle;
+                _oldPunch.X = punchAngle.X * 2;
+                _oldPunch.Y = punchAngle.Y * 2;
+
+                Cs2.SetViewAngle(tempAngle);
+            }
+            else
+            {
+                _oldPunch.X = 0;
+                _oldPunch.Y = 0;
+            }
+
+            Thread.Sleep(2);
         }
     }
 
+
     private static void MainThread()
     {
-        Task.Run(NoRecoil);
+        // Task.Run(NoRecoil);
         while (IsRunning)
         {
             Cs2.UpdateEntityList();
@@ -74,13 +92,6 @@ public abstract partial class Main
             if (WinApi.GetAsyncKeyState(0x2D) != 0)
             {
                 ShowMenu = !ShowMenu;
-                Thread.Sleep(200);
-            }
-
-            if (WinApi.GetAsyncKeyState(0x23) != 0) WinApi.FreeLibrary(Module);
-            if (WinApi.GetAsyncKeyState(0x21) != 0)
-            {
-                Cs2.SetViewAngle(new Vector3(50, 50, 50));
                 Thread.Sleep(200);
             }
 

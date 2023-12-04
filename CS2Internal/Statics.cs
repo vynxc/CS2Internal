@@ -8,7 +8,7 @@ public abstract unsafe partial class Main
 {
     public static readonly IntPtr ModuleBaseClient = WinApi.GetModuleHandle("client.dll");
     public static readonly IntPtr ModuleBaseEngine = WinApi.GetModuleHandle("engine2.dll");
-    public static Entity* LocalPlayerPawn;
+    public static EntityPawn* LocalPlayerPawn;
     public static IntPtr LocalPlayerPawnPtr;
     public static readonly bool IsRunning = true;
     public static readonly List<Entity> EntityList = new();
