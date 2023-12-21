@@ -28,6 +28,7 @@ public abstract partial class Main
         return true;
     }
 
+
     private static void Renderer()
     {
         var deltaTime = Stopwatch!.Elapsed.TotalSeconds;
@@ -56,38 +57,48 @@ public abstract partial class Main
     {
         while (true)
         {
-            var punchCache = LocalPlayerPawn->AimPunchCache;
-            var tempAngle = new Vector3(0, 0, 0);
-            var punchAngle = *(Vector3*)(punchCache.Data + (punchCache.Count - 1) * (ulong)sizeof(Vector3));
-            if (punchCache.Count is > 0 and < 0xFFFF)
+            if (Config.AntiRecoil)
             {
-                var viewAngles = Cs2.GetViewAngle();
-                tempAngle.X = viewAngles.X + _oldPunch.X - punchAngle.X * 2;
-                tempAngle.Y = viewAngles.Y + _oldPunch.Y - punchAngle.Y * 2;
-                tempAngle = Vector3.Normalize(tempAngle);
+                var punchCache = LocalPlayerPawn->AimPunchCache;
+                var tempAngle = new Vector3(0, 0, 0);
+                var punchAngle = *(Vector3*)(punchCache.Data + (punchCache.Count - 1) * (ulong)sizeof(Vector3));
+                if (punchCache.Count is > 0 and < 0xFFFF)
+                {
+                    var viewAngles = Cs2.GetViewAngle();
+                    tempAngle.X = viewAngles.X + _oldPunch.X - punchAngle.X * 2;
+                    tempAngle.Y = viewAngles.Y + _oldPunch.Y - punchAngle.Y * 2;
+                    while (tempAngle.Y > 180) tempAngle.Y -= 360;
 
-                _oldPunch.X = punchAngle.X * 2;
-                _oldPunch.Y = punchAngle.Y * 2;
+                    while (tempAngle.Y < -180) tempAngle.Y += 360;
 
-                Cs2.SetViewAngle(tempAngle);
+                    if (tempAngle.X > 89.0f) tempAngle.X = 89.0f;
+
+                    if (tempAngle.X < -89.0f) tempAngle.X = -89.0f;
+
+                    _oldPunch.X = punchAngle.X * 2;
+                    _oldPunch.Y = punchAngle.Y * 2;
+
+                    Cs2.SetViewAngle(tempAngle);
+                }
+                else
+                {
+                    _oldPunch.X = 0;
+                    _oldPunch.Y = 0;
+                }
             }
-            else
-            {
-                _oldPunch.X = 0;
-                _oldPunch.Y = 0;
-            }
 
-            Thread.Sleep(2);
+            Thread.Sleep(30);
         }
     }
 
 
     private static void MainThread()
     {
-        // Task.Run(NoRecoil);
+        Task.Run(NoRecoil);
         while (IsRunning)
         {
-            Cs2.UpdateEntityList();
+            if (Config.Esp)
+                Cs2.UpdateEntityList();
 
             if (WinApi.GetAsyncKeyState(0x2D) != 0)
             {
@@ -95,7 +106,7 @@ public abstract partial class Main
                 Thread.Sleep(200);
             }
 
-            Thread.Sleep(30);
+            Thread.Sleep(80);
         }
     }
 }

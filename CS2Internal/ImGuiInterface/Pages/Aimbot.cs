@@ -12,7 +12,9 @@ public static partial class Page
         {
             ImGui.BeginGroup();
             ImGui.Checkbox("Aim bot", ref Config.AimBot);
-            ImGui.Checkbox("Auto Shoot", ref Config.AutoShoot);
+            ImGui.Checkbox("Trigger Bot", ref Config.TriggerBot);
+            ImGui.Checkbox("Visible Check", ref Config.VisibleCheck);
+            ImGui.Checkbox("Anti Recoil", ref Config.AntiRecoil);
             ImGui.SliderFloat("Aim Offset", ref Config.AimOffset, 0, 10);
             ImGui.EndGroup();
 

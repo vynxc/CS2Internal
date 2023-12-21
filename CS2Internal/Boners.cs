@@ -22,7 +22,8 @@ public static class Boners
         { "feetL", 27 }
     }.ToFrozenDictionary();
 
-    public static readonly ImmutableArray<(string Bone1, string Bone2)> BoneConnections = new[] {
+    public static readonly ImmutableArray<(string Bone1, string Bone2)> BoneConnections = new[]
+    {
         ("cou", "head"),
         ("cou", "shoulderR"),
         ("cou", "shoulderL"),
@@ -34,6 +35,12 @@ public static class Boners
         ("kneesR", "cock"),
         ("kneesL", "cock"),
         ("kneesL", "feetL"),
-        ("kneesR", "feetR")
+        ("kneesR", "feetR"),
+        ("feetR", "handR"),
+        ("feetL", "handL"),
+        ("handR", "handL"),
+        ("feetR", "feetL")
     }.ToImmutableArray();
+    
+    
 }

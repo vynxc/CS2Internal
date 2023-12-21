@@ -8,17 +8,18 @@ public static partial class Page
     public static void RenderEspPage()
     {
         ImGui.TextUnformatted("ESP Options:");
+        ImGui.Checkbox("ESP", ref Config.Esp);
         ImGui.Separator();
         {
             ImGui.BeginGroup();
-            ImGui.Checkbox("ESP", ref Config.Esp);
+            ImGui.Checkbox("2D ESP", ref Config.TwoDEsp);
             ImGui.Checkbox("Name ESP", ref Config.NameEsp);
             ImGui.EndGroup();
 
             ImGui.SameLine();
 
             ImGui.BeginGroup();
-            ImGui.Checkbox("Box ESP", ref Config.BoxEsp);
+            ImGui.Checkbox("3D ESP", ref Config.BoxEsp);
             ImGui.Checkbox("Tracer ESP", ref Config.TracerEsp);
             ImGui.EndGroup();
 

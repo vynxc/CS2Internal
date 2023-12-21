@@ -8,6 +8,7 @@ public class Entity
 {
     public EntityPawn EntityPawn;
     public EntityController EntityController;
+    public IntPtr EntityPawnPtr;
 }
 
 [StructLayout(LayoutKind.Explicit)]
@@ -27,7 +28,6 @@ public struct EntityController
 public struct EntityPawn
 {
     [FieldOffset(C_BaseEntity.m_iHealth)] public int Health;
-
 
     [FieldOffset(C_BaseEntity.m_pGameSceneNode)]
     public unsafe GameSceneNode* SceneNode;
@@ -64,6 +64,9 @@ public struct EntitySpottedState
 {
     [FieldOffset(EntitySpottedState_t.m_bSpotted)]
     public bool Spotted;
+
+    [FieldOffset(EntitySpottedState_t.m_bSpottedByMask)]
+    public int SpottedByMask;
 }
 
 public struct CUtlVector

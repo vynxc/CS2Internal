@@ -6,6 +6,13 @@ namespace CS2Internal.Game;
 
 public static class Cs2
 {
+    public static unsafe void TriggerBot()
+    {
+        if (!Config.TriggerBot) return;
+        if (Main.LocalPlayerPawn->IdEntIndex == -1) return;
+        Shoot();
+    }
+
     public static unsafe void UpdateEntityList()
     {
         try
@@ -47,8 +54,8 @@ public static class Cs2
 
                 if (pCsPlayerPawn == IntPtr.Zero) continue;
                 var playerEntity = *(EntityPawn*)pCsPlayerPawn;
-                if (localPlayer == pCsPlayerPawn)
-                    continue;
+                if (localPlayer == pCsPlayerPawn) continue;
+
                 if (playerEntity.Health is <= 0 or > 100) continue;
 
                 lock (Main.EntityListLock)
@@ -56,7 +63,8 @@ public static class Cs2
                     Main.EntityList.Add(new Entity
                     {
                         EntityPawn = playerEntity,
-                        EntityController = *(EntityController*)player
+                        EntityController = *(EntityController*)player,
+                        EntityPawnPtr = pCsPlayerPawn
                     });
                 }
             }
@@ -95,14 +103,13 @@ public static class Cs2
         }
     }
 
-    private const float Smoothing = 0.1f;
-    private static Vector2 _oldPunch;
+    private const float Smoothing = 0.3f;
 
-
-    public static unsafe void AimAt(Vector3 target, bool autoShoot = false)
+    public static unsafe void AimAt(Vector3 target)
     {
         try
         {
+            var smoothingFactor = 0.1f; // define your smoothing factor, which should be between 0 and 1
             var origin = Main.LocalPlayerPawn->SceneNode->VecOriginAbsolute;
             var viewOffset = Main.LocalPlayerPawn->ViewOffset;
             var myPos = origin + viewOffset;
@@ -111,39 +118,18 @@ public static class Cs2
             var pitch = (float)-Math.Asin(deltaVec.Z / deltaVecLength) * (180 / (float)Math.PI);
             var yaw = (float)Math.Atan2(deltaVec.Y, deltaVec.X) * (180 / (float)Math.PI);
             if (!(pitch >= -89) || !(pitch <= 89) || !(yaw >= -180) || !(yaw <= 180)) return;
+
+// Get the current view angle.
+            var currentViewAngle = GetViewAngle(); // You need to implement 'GetViewAngle()'
+
+// Interpolate between the current and target angles.
+            var newPitch = currentViewAngle.X + smoothingFactor * (pitch - currentViewAngle.X);
+            var newYaw = currentViewAngle.Y + smoothingFactor * (yaw - currentViewAngle.Y);
             var currentAngles = new Vector3(
-                pitch,
-                yaw,
+                newPitch,
+                newYaw,
                 0);
             SetViewAngle(currentAngles);
-            if (!autoShoot) return;
-            var punchCache = Main.LocalPlayerPawn->AimPunchCache;
-            var tempAngle = new Vector3(0, 0, 0);
-            var punchAngle = *(Vector3*)(punchCache.Data + (punchCache.Count - 1) * (ulong)sizeof(Vector3));
-            if (punchCache.Count is > 0 and < 0xFFFF)
-            {
-                var viewAngles = GetViewAngle();
-                tempAngle.X = viewAngles.X + _oldPunch.X - punchAngle.X * 2;
-                tempAngle.Y = viewAngles.Y + _oldPunch.Y - punchAngle.Y * 2;
-                while (tempAngle.Y > 180) tempAngle.Y -= 360;
-
-                while (tempAngle.Y < -180) tempAngle.Y += 360;
-
-                if (tempAngle.X > 89.0f) tempAngle.X = 89.0f;
-
-                if (tempAngle.X < -89.0f) tempAngle.X = -89.0f;
-
-                _oldPunch.X = punchAngle.X * 2;
-                _oldPunch.Y = punchAngle.Y * 2;
-                SetViewAngle(tempAngle);
-            }
-            else
-            {
-                _oldPunch.X = 0;
-                _oldPunch.Y = 0;
-            }
-
-            Shoot();
         }
         catch (Exception e)
         {
@@ -154,10 +140,9 @@ public static class Cs2
 
 
     public static bool WorldToScreen(Vector3 pos, ReadOnlySpan<float> m, int windowWidth, int windowHeight,
-        out Vector2 screen, bool behindCheck = true)
+        out Vector2 screen)
     {
         screen = default;
-
         var vx = new Vector4(pos.X);
         var v1 = new Vector4(m[0], m[4], m[8], m[12]);
         var vy = new Vector4(pos.Y);
@@ -168,7 +153,7 @@ public static class Cs2
 
         var clipCoords = vx * v1 + vy * v2 + vz * v3 + v4;
 
-        if (behindCheck && clipCoords.W < 0.1f)
+        if (clipCoords.W < 0.1f)
             return false;
 
         var v2Ndc = new Vector2(clipCoords.X, clipCoords.Y);
